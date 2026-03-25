@@ -47,6 +47,7 @@ _PIKAFISH_DIR = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), 'pik
 PIKAFISH_EXE  = _os.path.join(_PIKAFISH_DIR, 'pikafish-avx2.exe')
 PIKAFISH_NNUE = _os.path.join(_PIKAFISH_DIR, 'pikafish.nnue')
 PIKAFISH_THINK_MS = 3000  # Thời gian suy nghĩ mỗi nước (milliseconds)
+MOONFISH_MAX_DEPTH = 3    # Giới hạn độ sâu số nước đi Moonfish suy nghĩ (nếu chơi quá khó, có thể giảm xuống 3-5)
 
 # Tọa độ về nhà (Home) để né Camera
 IDLE_X = -72.027

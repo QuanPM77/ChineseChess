@@ -7,7 +7,6 @@ import threading
 from pathlib import Path
 
 from robot_VIP import FR5Robot
-from pikafish_engine import PikafishEngine
 from ai_controller import AIController
 from camera_monitor import CameraMonitor
 from snapshot_detector import SnapshotDetector as YoloSnapshotDetector
@@ -98,19 +97,11 @@ class HardwareManager:
 
     def _init_ai(self):
         try:
-            exe_path = self.config.PIKAFISH_EXE
-            nnue_path = self.config.PIKAFISH_NNUE
-            if os.path.isfile(exe_path):
-                self.engine = PikafishEngine(exe_path)
-                self.engine.start(nnue_path=nnue_path)
-                print(f"✅ Pikafish engine started! (think={self.config.PIKAFISH_THINK_MS}ms)")
-            else:
-                print(f"❌ Pikafish exe KHÔNG tìm thấy: {exe_path}")
+            self.ai_ctrl = AIController(engine=None, config=self.config)
+            print(f"✅ Moonfish AI Controller started! (think={getattr(self.config, 'PIKAFISH_THINK_MS', 2000)}ms)")
         except Exception as e:
-            print(f"⚠️ Pikafish init error: {e}")
-            self.engine = None
-        
-        self.ai_ctrl = AIController(self.engine, self.config)
+            print(f"⚠️ Moonfish init error: {e}")
+            self.ai_ctrl = None
 
     def _init_camera(self):
         if self.dry_run:

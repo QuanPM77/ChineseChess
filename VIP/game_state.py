@@ -75,6 +75,7 @@ class GameState:
         self.ai_thinking = False
         self.ai_think_start = 0.0
         self.manual_override_active = False
+        self._pre_space_state = None
 
         print("[GAME] 🔄 New game started!")
         print(f"[FEN] {self.current_fen}")

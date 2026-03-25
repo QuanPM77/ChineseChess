@@ -31,18 +31,7 @@ _mode_label = '🛠️ DRY RUN (MOUSE & LOG)' if config.DRY_RUN else '🤖 REAL 
 print(f"\n=== MODE: {_mode_label} ===")
 
 def _kill_zombie_processes():
-    try:
-        result = subprocess.run(
-            ['tasklist', '/FI', 'IMAGENAME eq pikafish*', '/FO', 'CSV', '/NH'],
-            capture_output=True, text=True, timeout=5
-        )
-        if result.stdout.strip() and 'pikafish' in result.stdout.lower():
-            print("[CLEANUP] ⚠️ Phát hiện pikafish zombie process — đang kill...")
-            subprocess.run(['taskkill', '/F', '/IM', 'pikafish*'], capture_output=True, timeout=5)
-            print("[CLEANUP] ✅ Killed zombie pikafish processes.")
-            time.sleep(0.5)
-    except Exception as e:
-        print(f"[CLEANUP] ⚠️ Không thể kiểm tra zombie processes: {e}")
+    pass
 
 _kill_zombie_processes()
 
@@ -60,16 +49,23 @@ renderer = BoardRenderer(screen)
 # Khởi tạo các module quản lý SRP
 hw = HardwareManager(config, _PROJECT_DIR).initialize_all()
 
-# Khởi tạo TuongKy API
+# Khởi tạo TuongKy API (chỉ khi có internet)
 API_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzaW11bGF0aW9uMDAxIiwicm9sZSI6IlNJTVVMQVRJT04iLCJ0b2tlbklkIjoiMTlkYjRjMDEtNjk4My00MTU5LTllNzYtODk0NDU5YjJhMjM5IiwiaWF0IjoxNzczMTI3MTE5LCJleHAiOjE4MDQ2NjMxMTl9.cHQEzHS-SqrZqUZ9FRcJgUE_BzyxZ60iiy7xYzZPQOo"
 api_client = TuongKyAPI(API_TOKEN)
-api_client.create_match()
+if api_client.check_internet():
+    api_client.create_match(red_name="Human Player", black_name="VIP Robot AI")
+else:
+    api_client = None  # Không có internet → dùng Moonfish local, không gọi API
 
 state = GameState(allow_mouse_move=config.DRY_RUN, api_client=api_client)
 input_mgr = InputHandler(state, hw)
 
 def _cleanup_all():
     print("\n[CLEANUP] Đang dọn dẹp hệ thống...")
+    # Xóa phòng trên API nếu còn tồn tại
+    if state.api_client and state.api_client.room_id:
+        state.api_client.delete_match()
+        import time as _t; _t.sleep(2)  # Chờ DELETE request hoàn tất
     hw.cleanup()
     try: pygame.quit()
     except: pass
@@ -111,6 +107,10 @@ try:
         if hw.cam_monitor is not None:
             key = hw.cam_monitor.update_display()
             if key == ord("q"): running = False
+            elif key == ord(" "):  # SPACE bấm ở cửa sổ Camera
+                input_mgr.handle_keyboard(pygame.K_SPACE)
+            elif key == ord("z"):  # Z bấm ở cửa sổ Camera
+                input_mgr.handle_keyboard(pygame.K_z)
 
         # 2d. Xử lý AI Turn (Non-blocking)
         if state.turn == "b" and not state.game_over:
@@ -193,7 +193,7 @@ try:
                                     hw.capture_baseline_if_needed(force_delay=1.0)
                                     state.set_status("Your turn!", color=(0, 100, 180), duration=5.0)
                                 else:
-                                    hw.clear_yolo_baseline()
+                                    # KHÔNG CLEAR BASELINE Ở ĐÂY để người dùng đỡ phải bấm SPACE 2 lần (1 cho AI, 1 cho mình)
                                     state.set_status(f"🤖 AI: ({s[0]},{s[1]})→({d[0]},{d[1]}) | Di quân rồi SPACE", color=(0, 80, 160), duration=30.0)
                                 print("[GAME] Your turn...")
                     else:

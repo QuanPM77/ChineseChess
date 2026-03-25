@@ -32,6 +32,7 @@ class FR5Robot:
         self.tool_num    = 0
         self.user_num    = 1
         self.default_vel = config.MOVE_SPEED
+        self._connection_failed = False  # Đánh dấu đã thử kết nối thất bại → không retry nữa
 
         # ⚙️ Kẹp: dùng Tool DO0 (Đầu cánh tay - cáp M12)
         self.gripper_do_id = 0
@@ -61,11 +62,28 @@ class FR5Robot:
         if robot_sdk_core is None:
             raise Exception("Module robot_sdk_core chưa được import.")
 
+        if self._connection_failed:
+            print("[ROBOT] ⚠️ Đã thử kết nối trước đó và thất bại — bỏ qua.")
+            return
+
         try:
-            self.robot = robot_sdk_core.RPC(self.ip)
-            time.sleep(2)
+            # Tạm ẩn stderr để SDK không spam lỗi kết nối liên tục
+            import io, contextlib
+            original_stderr = sys.stderr
+            sys.stderr = io.StringIO()
+            try:
+                self.robot = robot_sdk_core.RPC(self.ip)
+                time.sleep(3)  # Chờ SDK thử kết nối
+            finally:
+                captured = sys.stderr.getvalue()
+                sys.stderr = original_stderr
+                # Chỉ in lỗi 1 lần nếu có
+                if '失败' in captured or 'error' in captured.lower():
+                    print(f"[ROBOT] ⚠️ SDK log: Kết nối thất bại (đã ẩn log lặp)")
+
             self.connected = self.robot.SDK_state
             if not self.connected:
+                self._connection_failed = True
                 raise Exception("SDK không thể kết nối tới robot")
 
             print(f"[ROBOT] ✅ Đã kết nối tới {self.ip}")
@@ -80,7 +98,23 @@ class FR5Robot:
 
         except Exception as e:
             print(f"[ROBOT] ❌ Lỗi connect: {e}")
+            if self.robot is not None:
+                try: self.robot.RobotEnable(0)
+                except: pass
+                # Bắt buộc dừng thread ẩn bên trong SDK (đây là nguyên nhân spam log)
+                try: 
+                    if hasattr(self.robot, 'stop_event'):
+                        self.robot.stop_event.set()
+                except: pass
+                # Kill real-time state thread (nếu có)
+                try: self.robot.robot_realstate_exit()
+                except: pass
+                try: self.robot.closeRPC_state()
+                except: pass
+                # Thử dọn dẹp biến để SDK hủy thread dưới nền
+                self.robot = None
             self.connected = False
+            self._connection_failed = True
             raise
 
     # -------------------------------------------------------------------------
@@ -284,6 +318,9 @@ class FR5Robot:
               + (" [ĂN QUÂN]" if is_capture else ""))
 
         if not self.connected and not self.dry:
+            if self._connection_failed:
+                print(f"[ROBOT] ⚠️ Robot không khả dụng — bỏ qua nước đi.")
+                return
             try:
                 self.connect()
             except Exception as e:
