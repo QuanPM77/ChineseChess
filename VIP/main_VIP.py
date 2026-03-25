@@ -22,6 +22,7 @@ import xiangqi
 from game_state import GameState
 from hardware_manager import HardwareManager
 from input_handler import InputHandler
+from tuongky_api import TuongKyAPI
 
 # ==========================================
 # 0. CHẾ ĐỘ & DỌN DẸP TIẾN TRÌNH CŨ
@@ -58,7 +59,13 @@ renderer = BoardRenderer(screen)
 
 # Khởi tạo các module quản lý SRP
 hw = HardwareManager(config, _PROJECT_DIR).initialize_all()
-state = GameState(allow_mouse_move=config.DRY_RUN)
+
+# Khởi tạo TuongKy API
+API_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzaW11bGF0aW9uMDAxIiwicm9sZSI6IlNJTVVMQVRJT04iLCJ0b2tlbklkIjoiMTlkYjRjMDEtNjk4My00MTU5LTllNzYtODk0NDU5YjJhMjM5IiwiaWF0IjoxNzczMTI3MTE5LCJleHAiOjE4MDQ2NjMxMTl9.cHQEzHS-SqrZqUZ9FRcJgUE_BzyxZ60iiy7xYzZPQOo"
+api_client = TuongKyAPI(API_TOKEN)
+api_client.create_match()
+
+state = GameState(allow_mouse_move=config.DRY_RUN, api_client=api_client)
 input_mgr = InputHandler(state, hw)
 
 def _cleanup_all():

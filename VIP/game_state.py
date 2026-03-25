@@ -3,7 +3,8 @@ import xiangqi
 from fen_utils import board_array_to_fen, fen_to_board_array, INITIAL_FEN
 
 class GameState:
-    def __init__(self, allow_mouse_move=False):
+    def __init__(self, allow_mouse_move=False, api_client=None):
+        self.api_client = api_client
         self.allow_mouse_move = allow_mouse_move
         
         # Core Game State
@@ -38,6 +39,8 @@ class GameState:
     def update_fen_from_board(self):
         """Cập nhật current_fen từ board array hiện tại."""
         self.current_fen = board_array_to_fen(self.board, self.turn, self.move_number)
+        if self.api_client:
+            self.api_client.send_fen(self.current_fen)
 
     def get_render_state(self):
         """Tạo dict game state cho renderer."""
@@ -78,6 +81,9 @@ class GameState:
         
         if hw_manager:
             hw_manager.capture_baseline_if_needed(force_delay=1)
+            
+        if self.api_client:
+            self.api_client.create_match()
 
     def set_status(self, msg, color=(200, 0, 0), duration=2.5):
         self.status_message = msg
@@ -91,6 +97,9 @@ class GameState:
     def handle_game_over(self, the_winner):
         self.winner = the_winner
         self.game_over = True
+        if self.api_client:
+            win_str = "RED" if the_winner == "r" else ("BLACK" if the_winner == "b" else "DRAW")
+            self.api_client.end_match(winner=win_str, reason="CHECKMATE")
 
     def save_rollback_state(self, baseline_occ=None, baseline_time=None):
         self._pre_space_state = {
