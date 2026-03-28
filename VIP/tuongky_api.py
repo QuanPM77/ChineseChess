@@ -103,14 +103,15 @@ class TuongKyAPI:
             except Exception as e:
                 print(f"[API] ❌ Error ending match: {e}")
 
-            # 2. Xóa phòng sau khi kết thúc
-            time.sleep(1)
-            self._do_delete(room)
+            # 2. Không được xóa phòng bằng DELETE API theo tài liệu (chỉ dùng POST /end)
+            # Hệ thống sẽ tự dọn phòng sau 3 giờ, hoặc đã dọn dẹp qua /end rôi.
+            # time.sleep(1)
+            # self._do_delete(room)
 
         threading.Thread(target=_task, daemon=True).start()
 
     def delete_match(self):
-        """Xóa phòng trên server (async). Dùng khi cleanup hoặc thoát game."""
+        """Đóng phòng trên server (async). Dùng khi cleanup hoặc thoát game."""
         if not self.online:
             return
             
@@ -120,20 +121,21 @@ class TuongKyAPI:
             return
 
         def _task():
-            self._do_delete(room)
+            # Thay vì gọi DELETE (không có trong API doc), ta gọi POST /end để kết thúc trận
+            url = f"{self.base_url}/{room}/end"
+            try:
+                payload = {
+                    "winner": "DRAW",
+                    "reason": "OTHER"  # Thoát game giữa chừng chặn
+                }
+                res = requests.post(url, json=payload, headers=self.headers, timeout=5)
+                res.raise_for_status()
+                print(f"[API] ✅ Closed Room manually: {room}")
+                with self._lock:
+                    if self.room_id == room:
+                        self.room_id = None
+            except Exception as e:
+                print(f"[API] ❌ Error closing room on exit: {e}")
 
         threading.Thread(target=_task, daemon=True).start()
-
-    def _do_delete(self, room_id):
-        """Gọi DELETE API để xóa phòng."""
-        url = f"{self.base_url}/{room_id}"
-        try:
-            res = requests.delete(url, headers=self.headers, timeout=5)
-            res.raise_for_status()
-            print(f"[API] ✅ Deleted Room: {room_id}")
-            with self._lock:
-                if self.room_id == room_id:
-                    self.room_id = None
-        except Exception as e:
-            print(f"[API] ❌ Error deleting room: {e}")
 
