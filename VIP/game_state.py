@@ -56,6 +56,10 @@ class GameState:
         }
 
     def reset_game(self, hw_manager=None):
+        # Đóng phòng hiện tại (nếu đang chơi dở) trước khi reset
+        if self.api_client and not self.game_over and self.api_client.room_id:
+            self.api_client.end_match(winner="DRAW", reason="OTHER")
+
         self.current_fen = INITIAL_FEN
         self.board, self.turn = fen_to_board_array(self.current_fen)
         self.game_over = False
