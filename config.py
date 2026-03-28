@@ -14,9 +14,10 @@ CAPTURE_BIN_Y = 225.024
 CAPTURE_BIN_Z = 291.68  # [QUAN TRỌNG] Độ cao khi thả quân vào thùng
 
 # Độ cao an toàn (mm)
-SAFE_Z  = 217.227  # Bay trên cao
-PICK_Z  = 180.0   # Hạ xuống gắp (Đã nâng lên để tránh đập bàn, hạ từ từ)
-PLACE_Z = 190.0   # Hạ xuống đặt
+SAFE_Z    = 217.227  # Bay tại chỗ (dùng ngay trên ô cờ khi gắp/đặt)
+TRANSIT_Z = 250.0    # Bay qua bàn cờ (cao hơn để tránh đụng quân khác)
+PICK_Z    = 180.0   # Hạ xuống gắp (Đã nâng lên để tránh đập bàn, hạ từ từ)
+PLACE_Z   = 190.0   # Hạ xuống đặt
 
 # Cấu hình Kẹp (Gripper) - Tùy chỉnh theo loại van của bạn
 GRIPPER_CLOSE = 1

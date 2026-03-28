@@ -264,42 +264,51 @@ class FR5Robot:
 
     def pick_at(self, col, row):
         """Gắp 1 quân cờ tại (col, row)."""
-        pose_safe = self.board_to_pose(col, row, config.SAFE_Z)
-        pose_pick = self.board_to_pose(col, row, config.PICK_Z)
-        print(f"[ROBOT] 🤏 Gắp tại grid=({col},{row}) → X={pose_safe[0]:.1f}, Y={pose_safe[1]:.1f}, Z={pose_safe[2]:.1f}")
+        pose_transit = self.board_to_pose(col, row, config.TRANSIT_Z)  # Cao nhất — bay vào
+        pose_safe    = self.board_to_pose(col, row, config.SAFE_Z)     # Ngay trên ô cờ
+        pose_pick    = self.board_to_pose(col, row, config.PICK_Z)     # Vị trí gắp
+        print(f"[ROBOT] 🤏 Gắp tại grid=({col},{row}) → X={pose_safe[0]:.1f}, Y={pose_safe[1]:.1f}")
 
         self.gripper_ctrl(config.GRIPPER_OPEN)   # Mở kẹp
-        self.movej_pose(pose_safe)                # Đi đến vị trí an toàn trên ô
-        self.movel_pose(pose_pick)                # Hạ xuống
+        self.movej_pose(pose_transit)             # Bay đến trên ô ở độ cao transit
+        self.movel_pose(pose_safe)                # Hạ xuống SAFE_Z
+        self.movel_pose(pose_pick)                # Hạ tiếp xuống gắp
         self.gripper_ctrl(config.GRIPPER_CLOSE)  # Đóng kẹp (gắp)
         time.sleep(0.5)                           # Đợi kẹp đóng
-        self.movel_pose(pose_safe)                # Nhấc lên
+        self.movel_pose(pose_safe)                # Nhấc lên SAFE_Z
+        self.movej_pose(pose_transit)             # Nhấc lên TRANSIT_Z để bay đi
         print(f"[ROBOT] ✅ Gắp xong ({col},{row})")
 
     def place_at(self, col, row):
         """Đặt 1 quân cờ tại (col, row)."""
-        pose_safe  = self.board_to_pose(col, row, config.SAFE_Z)
-        pose_place = self.board_to_pose(col, row, config.PLACE_Z)
-        print(f"[ROBOT] 📍 Đặt tại grid=({col},{row}) → X={pose_safe[0]:.1f}, Y={pose_safe[1]:.1f}, Z={pose_safe[2]:.1f}")
+        pose_transit = self.board_to_pose(col, row, config.TRANSIT_Z)  # Cao nhất — bay vào
+        pose_safe    = self.board_to_pose(col, row, config.SAFE_Z)     # Ngay trên ô cờ
+        pose_place   = self.board_to_pose(col, row, config.PLACE_Z)    # Vị trí đặt
+        print(f"[ROBOT] 📍 Đặt tại grid=({col},{row}) → X={pose_safe[0]:.1f}, Y={pose_safe[1]:.1f}")
 
-        self.movej_pose(pose_safe)                # Đến vị trí an toàn
-        self.movel_pose(pose_place)               # Hạ xuống
+        self.movej_pose(pose_transit)             # Bay vào trên ô ở độ cao transit
+        self.movel_pose(pose_safe)                # Hạ xuống SAFE_Z
+        self.movel_pose(pose_place)               # Hạ tiếp xuống đặt
         self.gripper_ctrl(config.GRIPPER_OPEN)   # Mở kẹp (thả)
         time.sleep(0.5)                           # Đợi thả
-        self.movel_pose(pose_safe)                # Nhấc lên
+        self.movel_pose(pose_safe)                # Nhấc lên SAFE_Z
+        self.movej_pose(pose_transit)             # Nhấc lên TRANSIT_Z để bay đi
         print(f"[ROBOT] ✅ Đặt xong ({col},{row})")
 
     def place_in_capture_bin(self):
         """Thả quân bị ăn vào bãi thải."""
         print("[ROBOT] 🗑️ Thả quân bị ăn vào bãi...")
-        pose_safe  = [config.CAPTURE_BIN_X, config.CAPTURE_BIN_Y, config.SAFE_Z]  + list(config.ROTATION)
-        pose_place = [config.CAPTURE_BIN_X, config.CAPTURE_BIN_Y, config.CAPTURE_BIN_Z] + list(config.ROTATION)
+        # Bay cao (TRANSIT_Z) trước khi di chuyển sang bãi — tránh quét qua quân khác
+        pose_transit = [config.CAPTURE_BIN_X, config.CAPTURE_BIN_Y, config.TRANSIT_Z] + list(config.ROTATION)
+        pose_safe    = [config.CAPTURE_BIN_X, config.CAPTURE_BIN_Y, config.SAFE_Z]    + list(config.ROTATION)
+        pose_place   = [config.CAPTURE_BIN_X, config.CAPTURE_BIN_Y, config.CAPTURE_BIN_Z] + list(config.ROTATION)
 
-        self.movej_pose(pose_safe)
-        self.movel_pose(pose_place)
+        self.movej_pose(pose_transit)             # Bay sang bãi ở độ cao transit
+        self.movej_pose(pose_safe)                # Hạ xuống SAFE_Z của bãi
+        self.movel_pose(pose_place)               # Hạ chậm để thả quân
         self.gripper_ctrl(config.GRIPPER_OPEN)
         time.sleep(0.5)
-        self.movel_pose(pose_safe)
+        self.movel_pose(pose_safe)                # Nhấc lên
         print("[ROBOT] ✅ Đã thả quân bị ăn.")
 
     # -------------------------------------------------------------------------
