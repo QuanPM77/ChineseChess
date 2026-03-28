@@ -62,15 +62,21 @@ input_mgr = InputHandler(state, hw)
 
 def _cleanup_all():
     print("\n[CLEANUP] Đang dọn dẹp hệ thống...")
-    # Xóa phòng trên API nếu còn tồn tại
-    if state.api_client and state.api_client.room_id:
-        state.api_client.delete_match()
-        import time as _t; _t.sleep(2)  # Chờ DELETE request hoàn tất
+    # Gọi POST /end đồng bộ (synchronous) để đảm bảo request hoàn tất trước khi thoát
+    if state.api_client and state.api_client.room_id and not state.game_over:
+        room = state.api_client.room_id
+        try:
+            import requests as _req
+            url = f"{state.api_client.base_url}/{room}/end"
+            _req.post(url, json={"winner": "DRAW", "reason": "OTHER"},
+                      headers=state.api_client.headers, timeout=5)
+            print(f"[CLEANUP] ✅ Đã POST /end cho phòng {room}")
+        except Exception as _e:
+            print(f"[CLEANUP] ⚠️ Không gửi được POST /end: {_e}")
     hw.cleanup()
     try: pygame.quit()
     except: pass
     print("[CLEANUP] ✅ Xong!")
-    os._exit(0)
 
 atexit.register(_cleanup_all)
 
