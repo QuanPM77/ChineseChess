@@ -128,7 +128,12 @@ try:
                 state.ai_think_start = time.time()
                 
                 def _ai_worker():
-                    state.ai_result = hw.ai_ctrl.pick_move(board_snapshot, color="b")
+                    if hw.ai_ctrl is None:
+                        print("[AI] ⚠️ ai_ctrl là None (moonfish chưa cài đặt) — dùng nước ngẫu nhiên để không sập game.")
+                        fallback_moves = xiangqi.find_all_valid_moves("b", board_snapshot)
+                        state.ai_result = random.choice(fallback_moves) if fallback_moves else None
+                    else:
+                        state.ai_result = hw.ai_ctrl.pick_move(board_snapshot, color="b")
                     
                 state.ai_thread = threading.Thread(target=_ai_worker, daemon=True)
                 state.ai_thread.start()
@@ -203,7 +208,7 @@ try:
                                     state.set_status(f"🤖 AI: ({s[0]},{s[1]})→({d[0]},{d[1]}) | Di quân rồi SPACE", color=(0, 80, 160), duration=30.0)
                                 print("[GAME] Your turn...")
                     else:
-                        print("[AI] No moves available -> AI Lost")
+                        print("[AI] AI không có nước đi hợp lệ — AI bị chiếu bí (Checkmate). Red wins.")
                         state.handle_game_over("r")
 
         pygame.display.flip()

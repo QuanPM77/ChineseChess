@@ -1,0 +1,3 @@
+[submodule "moonfish/moonfish"]
+	path = moonfish/moonfish
+	url = https://github.com/walker8088/moonfish.git

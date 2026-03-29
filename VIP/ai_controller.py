@@ -14,8 +14,17 @@ _MOONFISH_DIR = os.path.join(_PROJECT_DIR, 'moonfish', 'moonfish')
 if _MOONFISH_DIR not in sys.path:
     sys.path.insert(0, _MOONFISH_DIR)
 
-from moonfish import *
-import tools
+# Guard import: nếu moonfish engine chưa được clone đầy đủ thì module
+# vẫn load được — AIController sẽ báo lỗi rõ ràng khi khởi tạo.
+_MOONFISH_AVAILABLE = False
+try:
+    from moonfish import *
+    import tools
+    _MOONFISH_AVAILABLE = True
+except ImportError as _e:
+    print(f"[AI] ⚠️ Không thể import moonfish engine: {_e}")
+    print(f"[AI]    Kiểm tra thư mục: {_MOONFISH_DIR}")
+    print("[AI]    Gợi ý: chạy  git submodule update --init --recursive  rồi thử lại.")
 from fen_utils import board_array_to_fen
 
 class AIController:
@@ -30,6 +39,12 @@ class AIController:
             engine: Tham số giữ lại để tương thích với signature khởi tạo cũ (có thể bỏ qua = None).
             config: module config (dùng PIKAFISH_THINK_MS).
         """
+        if not _MOONFISH_AVAILABLE:
+            raise RuntimeError(
+                "Moonfish engine không có sẵn. "
+                f"Hãy chạy:  git submodule update --init --recursive  "
+                f"để populate thư mục {_MOONFISH_DIR}"
+            )
         self.config = config
         self.searcher = Searcher()
 
